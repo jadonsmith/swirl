@@ -1,0 +1,15 @@
+{
+  "name": "swirl",
+  "version": "1.0.0",
+  "description": "Swirl: a fluid-dynamics territory game. Drip your ink, push the liquid, spin vortices; most of the tank after 90 seconds wins.",
+  "main": "server.js",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Swirl</title>
+<meta name="description" content="A fluid-dynamics territory game. Drip your ink into a shared tank, push the liquid around, spin vortices. Whoever's colour covers the most after 90 seconds wins.">
+<meta name="theme-color" content="#07080f">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%2307080f'/%3E%3Cpath d='M32 14c10 0 17 7 17 15 0 7-6 11-11 11-4 0-7-3-7-6s2-5 5-5' fill='none' stroke='%23ff3d9a' stroke-width='5' stroke-linecap='round'/%3E%3Cpath d='M32 50c-10 0-17-7-17-15 0-7 6-11 11-11' fill='none' stroke='%2322d3ee' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1">
+</head>
+<body>
+<a class="hub-link" href="https://play.jadon.me/"><span aria-hidden="true">←</span> All games</a>
+
+<div id="stage">
+  <canvas id="tank" aria-hidden="true"></canvas>
+  <canvas id="fx" aria-hidden="true"></canvas>
+</div>
+
+<!-- ───────── HUD ───────── -->
+<div id="hud" hidden>
+  <div class="top">
+    <button class="chip" id="btn-leave" type="button"><span aria-hidden="true">←</span> Leave</button>
+    <div class="score">
+      <div class="bar" id="bar"></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div class="clock" id="clock">1:30</div>
+  </div>
+  <div class="big" id="big" aria-live="polite"></div>
+  <div class="bottom">
+    <div class="ink">
+      <span class="lbl">Ink</span>
+      <div class="ink-track"><i id="ink-fill"></i></div>
+    </div>
+    <p class="hint" id="hint">Hold to pour your ink · drag to push the liquid · <b>right-click</b> or <b>Space</b> for a vortex</p>
+    <button class="vortex" id="btn-vortex" type="button" aria-label="Vortex">
+      <svg viewBox="0 0 48 48"><path d="M24 8c9 0 16 7 16 15 0 6-5 10-10 10-4 0-7-3-7-6.5S25.5 21 28 21" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"/><path d="M24 40c-9 0-16-7-16-15 0-6 5-10 10-10" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round" opacity=".55"/></svg>
+      <svg class="cd" viewBox="0 0 100 100"><circle id="vortex-ring" cx="50" cy="50" r="46" pathLength="100"/></svg>
+    </button>
+  </div>
+  <button class="chip icon" id="btn-mute" type="button" aria-label="Toggle sound">🔊</button>
+</div>
+
+<!-- ───────── menu ───────── -->
+<div id="menu" class="veil">
+  <div class="panel">
+    <p class="kicker"><span class="dot"></span><span id="menu-online">connecting…</span></p>
+    <h1 class="logo">Swirl</h1>
+    <p class="pitch">One tank, up to four inks. <b>Pour yours, push the liquid, spin vortices.</b> Where colours meet they eat each other. Most of the tank after 90 seconds wins.</p>
+    <form id="play-form" class="row" autocomplete="off">
+      <label class="sr" for="name">Your name</label>
+      <input id="name" maxlength="16" placeholder="Your name" spellcheck="false">
+      <button class="btn primary" type="submit">Play now <span aria-hidden="true">→</span></button>
+    </form>
+    <div class="row private">
+      <button class="btn ghost" type="button" id="btn-create">Create private room</button>
+      <form id="join-form" class="join" autocomplete="off">
+        <label class="sr" for="code">Room code</label>
+        <input id="code" maxlength="4" placeholder="CODE" spellcheck="false" autocapitalize="characters">
+        <button class="btn ghost" type="submit">Join</button>
+      </form>
+    </div>
+    <ul class="how">
+      <li><i style="background:#ff3d9a"></i><span><b>Hold</b> to pour ink. Your ink tank refills while you rest.</span></li>
+      <li><i style="background:#22d3ee"></i><span><b>Drag</b> to shove the liquid and carry colour where you want it.</span></li>
+      <li><i style="background:#fbbf24"></i><span><b>Vortex</b> (right-click, Space or the swirl button) whips everything near it into a spiral.</span></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ───────── lobby ───────── -->
+<div id="lobby" class="veil" hidden>
+  <div class="panel">
+    <p class="kicker" id="lobby-kicker">Quick match</p>
+    <h2 class="lobby-title" id="lobby-title">Finding players…</h2>
+    <div class="code-box" id="code-box" hidden>
+      <span class="code" id="lobby-code">····</span>
+      <button class="btn ghost small" id="btn-copy" type="button">Copy invite link</button>
+    </div>
+    <ul class="people" id="people"></ul>
+    <div class="bots-row" id="bots-row" hidden>
+      <span>Bots</span>
+      <div class="stepper"><button type="button" id="bots-minus" aria-label="Fewer bots">−</button><b id="bots-n">1</b><button type="button" id="bots-plus" aria-label="More bots">+</button></div>
+    </div>
+    <p class="lobby-note" id="lobby-note"></p>
+    <div class="row">
+      <button class="btn ghost" type="button" id="btn-lobby-leave">Leave</button>
+      <button class="btn primary" type="button" id="btn-start">Start now</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────── results ───────── -->
+<div id="results" class="veil soft" hidden>
+  <div class="panel">
+    <p class="kicker">Final tank</p>
+    <h2 class="res-title" id="res-title">Pink wins</h2>
+    <ol class="res" id="res-list"></ol>
+    <div class="row">
+      <button class="btn ghost" type="button" id="btn-res-menu">Menu</button>
+      <button class="btn primary" type="button" id="btn-again">Play again</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+<script type="module" src="js/main.js?v=1"></script>
+</body>
+</html>
